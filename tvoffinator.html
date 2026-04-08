@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TV Offinator — Turn Off Any TV</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --yellow: #FFD600;
+    --red: #FF2D2D;
+    --dark: #0a0a0a;
+    --darker: #050505;
+    --card: #111111;
+    --border: rgba(255,214,0,0.15);
+    --text: #f0f0f0;
+    --muted: #888;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--dark);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    width: 16px; height: 16px;
+    background: var(--yellow);
+    border-radius: 50%;
+    position: fixed;
+    top: 0; left: 0;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s, width 0.2s, height 0.2s, background 0.2s;
+    mix-blend-mode: difference;
+  }
+  .cursor.hover { width: 40px; height: 40px; }
+
+  /* Scanlines overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem 3rem;
+    z-index: 100;
+    background: rgba(10,10,10,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--yellow);
+    letter-spacing: 2px;
+  }
+  .nav-logo span { color: var(--red); }
+  .nav-links { display: flex; gap: 2rem; align-items: center; }
+  .nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--yellow); }
+  .nav-cta {
+    background: var(--yellow);
+    color: #000;
+    border: none;
+    padding: 10px 24px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: none;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+    transition: background 0.2s, transform 0.1s;
+  }
+  .nav-cta:hover { background: #ffe033; transform: scale(1.03); }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8rem 2rem 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Animated grid background */
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: -50%;
+    background-image:
+      linear-gradient(rgba(255,214,0,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,214,0,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridMove 8s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes gridMove {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(60px); }
+  }
+
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,214,0,0.1);
+    border: 1px solid rgba(255,214,0,0.3);
+    color: var(--yellow);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 100px;
+    margin-bottom: 2rem;
+    animation: fadeUp 0.8s ease both;
+  }
+  .dot {
+    width: 6px; height: 6px;
+    background: var(--yellow);
+    border-radius: 50%;
+    animation: blink 1.2s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(72px, 16vw, 160px);
+    line-height: 0.9;
+    color: #fff;
+    animation: fadeUp 0.8s 0.1s ease both;
+    position: relative;
+    z-index: 1;
+  }
+  .hero-title .off {
+    color: var(--red);
+    display: inline-block;
+    animation: glitch 4s infinite;
+  }
+  @keyframes glitch {
+    0%,94%,100% { transform: none; text-shadow: none; }
+    95% { transform: translate(-3px, 0); text-shadow: 3px 0 var(--yellow); }
+    96% { transform: translate(3px, 0); text-shadow: -3px 0 cyan; }
+    97% { transform: translate(0, -2px); }
+    98% { transform: none; }
+  }
+
+  .hero-sub {
+    font-size: clamp(16px, 2.5vw, 22px);
+    color: var(--muted);
+    max-width: 560px;
+    margin: 1.5rem auto 0;
+    line-height: 1.6;
+    animation: fadeUp 0.8s 0.2s ease both;
+    position: relative;
+    z-index: 1;
+  }
+  .hero-sub strong { color: var(--yellow); font-weight: 600; }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2.5rem;
+    animation: fadeUp 0.8s 0.3s ease both;
+    position: relative;
+    z-index: 1;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn-primary {
+    background: var(--yellow);
+    color: #000;
+    border: none;
+    padding: 16px 40px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: none;
+    clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.2);
+    transform: translateX(-100%) skewX(-15deg);
+    transition: transform 0.4s;
+  }
+  .btn-primary:hover::after { transform: translateX(100%) skewX(-15deg); }
+  .btn-primary:hover { background: #ffe033; transform: translateY(-2px); }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 16px 40px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: none;
+    transition: all 0.2s;
+    border-radius: 2px;
+  }
+  .btn-secondary:hover { border-color: var(--yellow); color: var(--yellow); transform: translateY(-2px); }
+
+  /* TV animation */
+  .tv-wrap {
+    margin: 3rem auto 0;
+    animation: fadeUp 0.8s 0.4s ease both;
+    position: relative;
+    z-index: 1;
+  }
+  .tv-svg { filter: drop-shadow(0 0 30px rgba(255,214,0,0.3)); }
+
+  /* Stats strip */
+  .stats-strip {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    background: var(--yellow);
+    padding: 1rem 0;
+    overflow: hidden;
+    position: relative;
+  }
+  .stats-ticker {
+    display: flex;
+    gap: 3rem;
+    animation: ticker 20s linear infinite;
+    white-space: nowrap;
+  }
+  @keyframes ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .ticker-item {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    color: #000;
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .ticker-sep { opacity: 0.3; }
+
+  /* Sections */
+  section { padding: 6rem 2rem; max-width: 1100px; margin: 0 auto; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--yellow);
+    margin-bottom: 1rem;
+  }
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(40px, 7vw, 72px);
+    line-height: 1;
+    color: #fff;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Feature cards */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-top: 3rem;
+  }
+  .feature-card {
+    background: var(--card);
+    padding: 2.5rem 2rem;
+    transition: background 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--yellow);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s;
+  }
+  .feature-card:hover::before { transform: scaleX(1); }
+  .feature-card:hover { background: #161616; }
+  .feature-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 64px;
+    color: rgba(255,214,0,0.08);
+    line-height: 1;
+    margin-bottom: 1rem;
+  }
+  .feature-icon {
+    width: 48px; height: 48px;
+    margin-bottom: 1.25rem;
+  }
+  .feature-card h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0.75rem;
+  }
+  .feature-card p {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  /* PRANK DEMO */
+  .demo-section {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 2rem 6rem;
+  }
+  .demo-arena {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .demo-arena::before {
+    content: 'PRANK MODE';
+    position: absolute;
+    top: 1rem; right: 1.5rem;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--red);
+    border: 1px solid var(--red);
+    padding: 3px 8px;
+  }
+  .tv-screen {
+    width: 280px;
+    margin: 0 auto 2rem;
+    background: #000;
+    border: 3px solid #333;
+    border-radius: 8px;
+    aspect-ratio: 16/10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+  .tv-screen.on {
+    border-color: #555;
+    background: #0a1628;
+  }
+  .tv-screen.off {
+    border-color: #222;
+    background: #000;
+  }
+  .tv-content {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 2px;
+    transition: all 0.3s;
+  }
+  .tv-screen.on .tv-content { color: #fff; }
+  .tv-screen.off .tv-content { color: #111; }
+  .static-overlay {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255,255,255,0.03) 2px,
+      rgba(255,255,255,0.03) 4px
+    );
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+  .tv-screen.glitching .static-overlay { opacity: 1; animation: staticFlash 0.3s steps(3); }
+  @keyframes staticFlash {
+    0% { opacity:1; background-position: 0 0; }
+    33% { opacity:0.5; background-position: 0 4px; }
+    66% { opacity:1; background-position: 0 2px; }
+    100% { opacity:0; }
+  }
+
+  .big-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    padding: 20px 56px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 3px;
+    cursor: none;
+    clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .big-btn:hover { background: #ff1a1a; transform: scale(1.03); }
+  .big-btn:active { transform: scale(0.97); }
+  .big-btn .btn-ring {
+    width: 20px; height: 20px;
+    border: 2px solid rgba(255,255,255,0.6);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 0.8s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .prank-result {
+    margin-top: 1.5rem;
+    font-size: 16px;
+    color: var(--yellow);
+    font-weight: 600;
+    min-height: 28px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.4s;
+  }
+  .prank-result.show { opacity: 1; transform: none; }
+
+  /* Specs */
+  .specs-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: start;
+    margin-top: 3rem;
+  }
+  @media (max-width: 700px) { .specs-layout { grid-template-columns: 1fr; } }
+  .spec-list { border-top: 1px solid var(--border); }
+  .spec-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .spec-key { color: var(--muted); font-weight: 500; }
+  .spec-val { color: #fff; font-weight: 600; text-align: right; }
+  .spec-val.highlight { color: var(--yellow); font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 1px; }
+
+  .device-visual {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3rem 2rem;
+    gap: 1rem;
+  }
+  .battery-device {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .battery-top {
+    width: 20px; height: 8px;
+    background: var(--yellow);
+    border-radius: 2px 2px 0 0;
+  }
+  .battery-body {
+    width: 40px; height: 90px;
+    background: linear-gradient(180deg, #FFD600 0%, #cc9c00 100%);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 700;
+    color: #000;
+    letter-spacing: 0.5px;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    box-shadow: 0 0 20px rgba(255,214,0,0.4);
+    animation: batteryPulse 2s ease-in-out infinite;
+  }
+  @keyframes batteryPulse {
+    0%,100% { box-shadow: 0 0 20px rgba(255,214,0,0.4); }
+    50% { box-shadow: 0 0 40px rgba(255,214,0,0.8), 0 0 60px rgba(255,214,0,0.3); }
+  }
+  .device-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* Creator */
+  .creator-section {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 2rem 6rem;
+  }
+  .creator-card-big {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 3rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .creator-card-big::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(255,214,0,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .creator-tag {
+    display: inline-block;
+    background: rgba(255,45,45,0.15);
+    color: var(--red);
+    border: 1px solid rgba(255,45,45,0.3);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 2px;
+    margin-bottom: 1.5rem;
+  }
+  .creator-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 1rem;
+  }
+  .creator-bio {
+    font-size: 16px;
+    color: var(--muted);
+    line-height: 1.8;
+    max-width: 560px;
+  }
+  .creator-bio strong { color: var(--yellow); }
+  .creator-stats {
+    display: flex;
+    gap: 3rem;
+    margin-top: 2.5rem;
+    flex-wrap: wrap;
+  }
+  .c-stat-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    color: var(--yellow);
+    line-height: 1;
+  }
+  .c-stat-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  /* Order section */
+  .order-section {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 2rem 8rem;
+  }
+  .order-box {
+    background: var(--yellow);
+    padding: 4rem 3rem;
+    clip-path: polygon(20px 0%, 100% 0%, calc(100% - 20px) 100%, 0% 100%);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .order-box::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 10px,
+      rgba(0,0,0,0.03) 10px,
+      rgba(0,0,0,0.03) 20px
+    );
+  }
+  .order-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 10vw, 96px);
+    color: #000;
+    line-height: 0.9;
+    position: relative;
+    z-index: 1;
+  }
+  .order-price {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(60px, 14vw, 120px);
+    color: var(--red);
+    line-height: 1;
+    position: relative;
+    z-index: 1;
+  }
+  .order-sub {
+    font-size: 15px;
+    color: rgba(0,0,0,0.6);
+    margin-top: 0.5rem;
+    position: relative;
+    z-index: 1;
+  }
+  .order-btn {
+    display: inline-block;
+    background: #000;
+    color: var(--yellow);
+    border: none;
+    padding: 18px 60px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 3px;
+    cursor: none;
+    margin-top: 2rem;
+    position: relative;
+    z-index: 1;
+    clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+    transition: all 0.2s;
+  }
+  .order-btn:hover { background: #111; transform: scale(1.04); }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2rem 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--muted);
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  footer .logo { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--yellow); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* Scroll reveal */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible { opacity: 1; transform: none; }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+
+<nav>
+  <div class="nav-logo">TV <span>OFF</span>inator</div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#demo">Demo</a>
+    <a href="#specs">Specs</a>
+    <a href="#order">Order</a>
+    <button class="nav-cta" onclick="document.getElementById('order').scrollIntoView({behavior:'smooth'})">Buy — $18</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow"><div class="dot"></div> Now available — only $18</div>
+  <h1 class="hero-title">TV<br><span class="off">OFF</span><br>INATOR</h1>
+  <p class="hero-sub">
+    A prank device the <strong>size of a AA battery</strong> that can turn off
+    <strong>almost any TV</strong>. Point. Click. Chaos.
+  </p>
+  <div class="hero-actions">
+    <button class="btn-primary" onclick="document.getElementById('order').scrollIntoView({behavior:'smooth'})">Order Now — $18</button>
+    <button class="btn-secondary" onclick="document.getElementById('demo').scrollIntoView({behavior:'smooth'})">See It Work</button>
+  </div>
+  <div class="tv-wrap">
+    <svg class="tv-svg" width="300" height="200" viewBox="0 0 300 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="20" y="10" width="260" height="160" rx="10" fill="#111" stroke="#333" stroke-width="2"/>
+      <rect x="34" y="24" width="232" height="132" rx="5" fill="#0a0a1a"/>
+      <!-- Screen content -->
+      <text x="150" y="85" font-family="'Bebas Neue',sans-serif" font-size="32" fill="#FFD600" text-anchor="middle" id="hero-tv-text">WATCHING GAME</text>
+      <text x="150" y="110" font-family="sans-serif" font-size="11" fill="#888" text-anchor="middle">ESPN • Live</text>
+      <!-- Power indicator -->
+      <circle cx="268" cy="155" r="5" fill="#00ff88" id="power-dot"/>
+      <!-- Stand -->
+      <rect x="130" y="172" width="40" height="12" rx="3" fill="#222"/>
+      <rect x="100" y="184" width="100" height="6" rx="3" fill="#1a1a1a"/>
+      <!-- Buttons on side -->
+      <rect x="22" y="60" width="4" height="20" rx="2" fill="#333"/>
+      <rect x="22" y="88" width="4" height="20" rx="2" fill="#333"/>
+    </svg>
+  </div>
+</div>
+
+<!-- TICKER -->
+<div class="stats-strip">
+  <div class="stats-ticker" id="ticker">
+    <div class="ticker-item">AA Battery Size <span class="ticker-sep">★</span></div>
+    <div class="ticker-item">Works On Almost Any TV <span class="ticker-sep">★</span></div>
+    <div class="ticker-item">No App Needed <span class="ticker-sep">★</span></div>
+    <div class="ticker-item">Handmade By Seth <span class="ticker-sep">★</span></div>
+    <div class="ticker-item">Only $18 <span class="ticker-sep">★</span></div>
+    <div class="ticker-item">Instant Chaos <span class="ticker-sep">★</span></div>
+    <div class="ticker-item">Point And Click <span class="ticker-sep">★</span></div>
+    <div class="ticker-item">AA Battery Size <span class="ticker-sep">★</span></div>
+    <div class="ticker-item">Works On Almost Any TV <span class="ticker-sep">★</span></div>
+    <div class="ticker-item">No App Needed <span class="ticker-sep">★</span></div>
+    <div class="ticker-item">Handmade By Seth <span class="ticker-sep">★</span></div>
+    <div class="ticker-item">Only $18 <span class="ticker-sep">★</span></div>
+    <div class="ticker-item">Instant Chaos <span class="ticker-sep">★</span></div>
+    <div class="ticker-item">Point And Click <span class="ticker-sep">★</span></div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="reveal">
+    <div class="section-label">Why it slaps</div>
+    <div class="section-title">Built different.</div>
+  </div>
+  <div class="features-grid reveal">
+    <div class="feature-card">
+      <div class="feature-num">01</div>
+      <svg class="feature-icon" viewBox="0 0 48 48" fill="none">
+        <rect x="8" y="14" width="32" height="22" rx="3" stroke="#FFD600" stroke-width="2"/>
+        <rect x="12" y="18" width="24" height="14" rx="2" fill="rgba(255,214,0,0.1)"/>
+        <rect x="20" y="37" width="8" height="5" rx="1" fill="#FFD600"/>
+        <circle cx="38" cy="16" r="3" fill="#FFD600"/>
+      </svg>
+      <h3>Works on almost any TV</h3>
+      <p>Samsung, LG, Sony, Vizio — doesn't matter. If it's a TV, it's probably getting turned off.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-num">02</div>
+      <svg class="feature-icon" viewBox="0 0 48 48" fill="none">
+        <rect x="18" y="6" width="12" height="28" rx="5" stroke="#FFD600" stroke-width="2"/>
+        <rect x="19" y="7" width="10" height="5" rx="1" fill="#FFD600" opacity="0.3"/>
+        <path d="M8 38h32" stroke="#FFD600" stroke-width="2" stroke-linecap="round"/>
+        <path d="M14 34v4M34 34v4" stroke="#FFD600" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <h3>AA battery sized</h3>
+      <p>Fits in your pocket, your sock, your hand — anywhere you need to hide a secret weapon.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-num">03</div>
+      <svg class="feature-icon" viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="24" r="14" stroke="#FFD600" stroke-width="2"/>
+        <path d="M24 16v8l6 3" stroke="#FFD600" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="24" cy="24" r="3" fill="#FFD600"/>
+      </svg>
+      <h3>Zero setup</h3>
+      <p>No Bluetooth. No app. No Wi-Fi. Just point the thing at a TV and click. That's literally it.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-num">04</div>
+      <svg class="feature-icon" viewBox="0 0 48 48" fill="none">
+        <path d="M24 6l4 12h13l-10.5 7.6 4 12.4L24 30.4 13.5 38l4-12.4L7 18h13z" stroke="#FFD600" stroke-width="2" fill="none" stroke-linejoin="round"/>
+      </svg>
+      <h3>Handmade by a 17-year-old</h3>
+      <p>Not made in a factory. Made by Seth — teenager, inventor, chaos enthusiast — in his room.</p>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO -->
+<div class="demo-section" id="demo">
+  <div class="reveal" style="margin-bottom: 2rem;">
+    <div class="section-label">Try it</div>
+    <div class="section-title">Press the button.</div>
+  </div>
+  <div class="demo-arena reveal">
+    <p style="font-size:14px; color:var(--muted); margin-bottom:2rem;">Imagine you're in a sports bar. Everyone's watching the game. You reach into your pocket...</p>
+    <div class="tv-screen on" id="demo-tv">
+      <div class="static-overlay" id="static"></div>
+      <div class="tv-content" id="demo-tv-text">🏈 GAME ON</div>
+    </div>
+    <button class="big-btn" id="prank-btn" onclick="doPrank()">
+      <span id="btn-text">PRESS THE BUTTON</span>
+      <div class="btn-ring" id="btn-ring"></div>
+    </button>
+    <div class="prank-result" id="prank-result"></div>
+  </div>
+</div>
+
+<!-- SPECS -->
+<section id="specs">
+  <div class="reveal">
+    <div class="section-label">Under the hood</div>
+    <div class="section-title">The specs.</div>
+  </div>
+  <div class="specs-layout">
+    <div class="reveal">
+      <div class="spec-list">
+        <div class="spec-item">
+          <span class="spec-key">Size</span>
+          <span class="spec-val">AA battery</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-key">Weight</span>
+          <span class="spec-val">Basically nothing</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-key">Compatibility</span>
+          <span class="spec-val">Almost any TV</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-key">Setup time</span>
+          <span class="spec-val">0 seconds</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-key">App required</span>
+          <span class="spec-val">Nope</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-key">Wi-Fi required</span>
+          <span class="spec-val">Nope</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-key">Price</span>
+          <span class="spec-val highlight">$18.00</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-key">Made by</span>
+          <span class="spec-val">Seth Soileau, 17</span>
+        </div>
+      </div>
+    </div>
+    <div class="device-visual reveal">
+      <div class="battery-device">
+        <div class="battery-top"></div>
+        <div class="battery-body">TV OFFINATOR</div>
+      </div>
+      <div class="device-label">
+        Actual size comparison<br>
+        <span style="color: var(--yellow);">AA battery</span> — fits anywhere
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CREATOR -->
+<div class="creator-section">
+  <div class="creator-card-big reveal">
+    <div class="creator-tag">The guy behind it</div>
+    <div class="creator-name">Seth Soileau</div>
+    <p class="creator-bio">
+      I'm <strong>17 years old</strong> and I built the TV Offinator from scratch because I thought it would be hilarious —
+      and it is. I design, build, and ship every single unit myself.
+      <br><br>
+      No factory. No team. Just me, some parts, and a dream of turning off every TV in a restaurant.
+    </p>
+    <div class="creator-stats">
+      <div>
+        <div class="c-stat-num">17</div>
+        <div class="c-stat-label">Years old</div>
+      </div>
+      <div>
+        <div class="c-stat-num">$18</div>
+        <div class="c-stat-label">Price</div>
+      </div>
+      <div>
+        <div class="c-stat-num">100%</div>
+        <div class="c-stat-label">Handmade</div>
+      </div>
+      <div>
+        <div class="c-stat-num">∞</div>
+        <div class="c-stat-label">Chaos potential</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ORDER -->
+<div class="order-section" id="order">
+  <div class="order-box reveal">
+    <div class="order-title">Ready to<br>cause chaos?</div>
+    <div class="order-price">$18</div>
+    <div class="order-sub">Free shipping • Handmade by Seth • Ships from Louisiana</div>
+    <br>
+    <button class="order-btn" onclick="alert('To order, contact Seth directly! Add your payment info here.')">Order Now</button>
+  </div>
+</div>
+
+<footer>
+  <div class="logo">TV Offinator</div>
+  <div>Made by Seth Soileau · Age 17 · Louisiana</div>
+  <div>Use responsibly. Or don't. Your call.</div>
+</footer>
+
+<script>
+  // Cursor
+  const cursor = document.getElementById('cursor');
+  document.addEventListener('mousemove', e => {
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top = e.clientY + 'px';
+  });
+  document.querySelectorAll('button, a, .feature-card').forEach(el => {
+    el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+    el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+  });
+
+  // Hero TV animation
+  const heroTexts = ['WATCHING GAME', 'LIVE SPORTS', 'BIG MATCH', '4TH QUARTER'];
+  let hIdx = 0;
+  setInterval(() => {
+    const el = document.getElementById('hero-tv-text');
+    if(el) { hIdx = (hIdx+1)%heroTexts.length; el.textContent = heroTexts[hIdx]; }
+  }, 2000);
+
+  // Prank demo
+  const pranks = [
+    'Click. The big game just went dark. 💀',
+    'Someone is blaming the cable company rn.',
+    'Three people just hit the same remote. Nothing works.',
+    'The bartender is VERY confused.',
+    'You: "Weird, must be a power surge." 😇',
+    'Total chaos. Exactly as planned.',
+    'The whole bar just groaned at the same time.',
+  ];
+  let pIdx = 0;
+  let isAnimating = false;
+
+  function doPrank() {
+    if(isAnimating) return;
+    isAnimating = true;
+    const tv = document.getElementById('demo-tv');
+    const tvText = document.getElementById('demo-tv-text');
+    const result = document.getElementById('prank-result');
+    const btnText = document.getElementById('btn-text');
+
+    btnText.textContent = 'SENDING SIGNAL...';
+    tv.classList.add('glitching');
+
+    setTimeout(() => {
+      tv.classList.remove('on', 'glitching');
+      tv.classList.add('off');
+      tvText.textContent = '';
+      result.textContent = pranks[pIdx % pranks.length];
+      result.classList.add('show');
+      pIdx++;
+      btnText.textContent = 'DO IT AGAIN';
+      isAnimating = false;
+    }, 400);
+
+    setTimeout(() => {
+      tv.classList.remove('off');
+      tv.classList.add('on');
+      tvText.textContent = heroTexts[Math.floor(Math.random()*heroTexts.length)];
+      result.classList.remove('show');
+      btnText.textContent = 'PRESS THE BUTTON';
+    }, 3000);
+  }
+
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach((e, i) => {
+      if(e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), i * 80);
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  reveals.forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
