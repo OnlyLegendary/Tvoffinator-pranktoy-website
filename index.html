@@ -325,7 +325,7 @@ function download(){
     p += Math.floor(Math.random()*20) + 5;
     if (p >= 99){
       clearInterval(di);
-      d.innerHTML = "downloading samuel... 99% (stuck. it is always stuck)";
+      d.innerHTML = "downloading";
       return;
     }
     d.innerHTML = "downloading samuel... " + p + "%";
